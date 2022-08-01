@@ -1,0 +1,26 @@
+{
+	"experiments":
+	[
+	    {
+	        "env": ["CartPole"],
+	        "agent": [
+	            {
+	                "algorithm": ["TDPolicyEval"],
+	                "step_size": [0.0001, 0.0003, 0.001, 0.003, 0.01],
+					"target_net_step_size": [0.03, 0.1, 0.3, 1.0],
+					"num_hidden_layers" : [2],
+					"layer_size": [64, 128]
+	            }
+
+	        ],
+			"discount": [1.0],
+			"num_steps": [5000],
+			"max_steps_per_ep": [999],
+			"offline_training": [true]
+	    }
+	],
+	"save_freq": [100],
+	"save_model_freq": [200],
+	"num_repeats": [10],
+	"num_runs_per_group": [10]
+}

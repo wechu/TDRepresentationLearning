@@ -1,0 +1,218 @@
+--- Aug 1, 2022
+Brainstorm first. The primary question is to compare TD and MC for representation learning and develop
+a theoretical model to explain the differences.
+So, the first step is to collect some data. What are the observed differences between TD and MC?
+
+What are some factors to investigate in the next experiments?
+
+- Check on different envs (i.e. different states/transition/rewards)
+- Reward structure: Dense, sparse, binary, shaped
+- Different policies for policy evaluation. Quality of policy.
+- Level of stochasticity in the environment/policy.
+- Amount of data.
+- Size of the agent's model. i.e. capacity
+- N-step methods
+- Hyperparams: step size, target net step size
+- Discount factor
+
+
+
+
+
+--- July 28, 2022
+v- Get MonteCarlo training working
+    v- Modify Agent
+    v- Modify training_engine config converter
+- Compare TD and MC
+    v- Test error
+    v- Linear regression test error, rank of feature matrix
+    - Ehsan's alignment
+
+- Think about the alignment measure
+
+Some quick experiments comparing TD and MC are pretty surprising.
+So it seems like TD actually outperforms MC in this setting. For some reason, the RMSE gets stuck around 50 when using
+MC but with TD it goes down to about 35. Decreasing the step size or increasing the number of training iterations
+doesn't seem to solve the problem with MC. It's just stuck around 50.
+I guess there could be some dependence on the amount of data.
+
+TD also benefited from an increase in capacity. Going from 64 hidden units to 128 units made the error go down from
+about 60 to 35. MC didn't seem affected by this change much.
+I wonder if this has to do with TD relying more on the function approximation capacity. This would make some sense
+since the targets are expressed using the neural net itself. If these are more accurate, it makes sense that the
+overall value predictions will also be more accurate.
+
+TD does seem to run slower than MC though. I'm guessing by around a factor of 2? Perhaps it's due to the target net?
+
+The rank of the features dips down quickly within the first 100 iterations for MC and then stays around 100
+(feature size is 129). For TD it slowly goes down to about 112 but stabilizes there. This is in line with Clare's
+results that TD leads to higher-rank features. i.e. they generalize less.
+
+--- July 27, 2022
+v- Debug the feature extraction. Why are they changing?
+Is it because the target net isn't set? Or the net is being reinitialized and weights are not loaded properly?
+Check the test error of that example.
+
+Figure it out! It's because you can't use a list with the pytorch network. You need to use nn.ModuleList so that
+Pytorch can appropriately label the contained layers as part of the network. What was going wrong is that the
+weights for the intermediate layers weren't being saved or loaded properly.
+
+v- Compute Ehsan's representation alignment
+Done, except I'm not sure how to properly rescale the features so the results make sense.
+Currently, I've tried rescaling by the max feature value over the entire dataset. When I do this,
+there's an odd trend that emerges. At first, the alignment curves get better over the first ~500 iterations but then
+they get progressively worse with more training.
+On the other hand, if I don't rescale the features, the curves keep on getting better and better.
+
+Basically, when I don't rescale the features, the largest singular values seem to keep growing and growing. So,
+what I think is going on is that the feature vectors tend to increase in norm over the course of training. At first,
+the improvement in alignment is larger so we see progress when using the rescaled features. But later during training
+I think the "raw" alignment stays the same but the feature magnitudes increase. The rescaling of the features may
+make the alignment measure decrease at that point.
+It's not exactly clear to me how to measure these quantities fairly though.
+I should ask Ehsan what he thinks about this.
+
+Hm... well for now I can move on to coding up Monte Carlo.
+Then, we can compare TD and MC at least at a preliminary stage.
+
+What about condition number of X^T X to get an estimate of the convergence speed? Or the spectrum of that matrix?
+
+--- July 26, 2022
+v- Change save frequency for the model. Have a separate counter for that, less often.
+
+- Code up regression with the learned features
+    v- Add function to agent to get the features
+    - Why are the features changing everytime I run it?
+
+- Code up Monte-Carlo training
+
+--- July 25, 2022
+- Preprocess states. How to do this properly?
+    - agent.initialize_data()
+    - Should do in the data loader -> whenever you load the data, you can get it preprocessed beforehand
+    - Make sure to pass the right index to the data loader to load the appropriate run.
+    Take i_run % number of hyperparamater configurations
+
+Preliminary results:
+- RMSE test error goes down. The agent is learning!
+- Some interesting interactions with the step size. Somehow the error ends up lower if the step size is larger
+rather than lower (even the converged error).  Is this due to the implicit regularization of SGD?
+Perhaps related to flatter minima and generalization.
+Weird.
+with step_size=0.001, the RMSE gets stuck around 63. But with step_size=0.01, it goes down to around 31.
+The target_step_size is the same at 0.1.
+
+There's also some overfitting going on. After the test error drops to a minimum, it increases slightly after more
+training for some reason. When step_size=0.1, the error drops to 31 after 4000 steps but then slowly increases back
+to around 43 at 10000 steps.
+Maybe the layers should be larger?
+
+Next:
+- Change saving frequency. Save thet est error fairly often but save the model checkpoints less often.
+Have a dict passed to the logger which specifies each metric and how often they should be saved.
+- Have different training mode with pretrained representations.
+Actually, this could simply be pretrained representations + regression on the test data.
+Yeah! that sounds quite good actually.
+- Code up Monte-Carlo training algorithm.
+-
+
+Later:
+- Try with resets on the represent
+
+
+
+--- July 21, 2022
+v- Change config file
+- Preprocess states. Where to do this and how to do in batch?
+In agent.initialize_data()
+
+- Check if error is going down
+
+--- July 20, 2022
+
+Todos:
+v- Finish coding up the network and training of the neural net
+v- Save network and extract features
+- Train on new task with learned features. What task to pick?
+    - Could try linear regression on the true policy eval values first.
+    - Control? with value/policy-based algorithm. Sarsa first perhaps?
+    - Could also try policy evaluation again, but with a fixed rep. Could do both TD and MC on a new dataset.
+
+So, next, I need to test out the code and actually train an agent.
+After that, need to code up an agent that can use the fixed features and load them. To do this,
+I could simply load the saved weights but then freeze all the layers except the last, which I reset to 0.
+Then, I can train using an SGD optimizer.
+
+
+
+
+--- July 19, 2022 ---
+run.py
+- what to pass to TrainingEngine()?
+
+training_engine.py
+- Code up offline_run
+- Have a run method that can switch between online and offline (?)
+
+logger.py
+- Change up the logger
+
+
+
+--Should agents support both offline and online training?
+Well for policy evaluation, there's no point in doing online training really. We reduce the variance and make
+comparisons more fair by keeping the data the same.
+For control, we do need both options. Now, offline and online training are quite different.
+
+
+Later:
+-Should do experiments with scaling depth and width
+
+
+
+
+--- July 18, 2022 ---
+Should we learn state values or state-action values?
+
+Should we learn from an offline batch or online?
+I think we should first do an offline batch so that we can ensure both algorithms see the same data.
+Our focus is on learning about the quality of the representations learned.
+
+Intermediate steps:
+- Change training engine to run offline. Pass a parameter that decides whether we do offline or online training.
+- Need to use info about the environment to load the right data.
+    - Should we have multiple offline datasets for the same env to get repeats? Or just one big dataset and do repeats
+    on the algorithm only?
+    In offline deep RL, it seems like the dataset is fixed usually.
+    For us, it seems fairly important to see what happens over different datasets also because we eventually want to
+    discuss representations learned by agents that can interact in the env.
+    Hence, the config file could be used to specify the number of repeats. The corresponding dataset will be loaded.
+- Do agents have to be modified so that they can use the offline dataset instead?
+    Well, we could simply include a parameter to toggle an offline training mode. E.g. for DQN, this would do the
+    standard minibatch update but then not append to the replay buffer.
+    Oh but we would try a Sarsa update first anyway.
+
+- Where to pass the offline data path? and load it?
+
+run.py
+- what to pass to TrainingEngine()?
+
+training_engine.py
+- Code up offline_run
+- Have a run method that can switch between online and offline.
+-
+
+--- July 15, 2022 ---
+Setup policy evaluation experiment:
+- Collect offline data with behaviour policy, gridworld, cartpole, mountain car.
+- Do MC rollouts/value iteration to get the true values
+- Code up neural networks for TD and Monte-Carlo training with replay buffer.
+- Train with TD and Monte-Carlo and check error vs. true values. Save multiple checkpoints.
+- Then, extract the features and try to do different tasks.
+E.g. policy eval, control with Q-learning (estimate values), control with PG (estimate policy),
+try GVFs with other cumulants, successor features?
+
+
+Other ideas:
+- model-based loss function?
+
