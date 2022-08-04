@@ -33,7 +33,7 @@ for i_run in idx_to_run:
                               save_steps=True, save_episodes=False)
 
     training_engine = TrainingEngine(cfg.env_class, cfg.config_dict, cfg.agent_class, cfg.config_dict, logger,
-                                     config_dict["discount"], config_dict["num_steps"], i_run, config_dict['run'],
+                                     config_dict["num_steps"], i_run, config_dict['run'],
                                      iteration_counter="steps",
                                      save_file=save_path + 'res',
                                      max_steps=config_dict["max_steps_per_ep"],

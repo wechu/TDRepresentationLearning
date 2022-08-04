@@ -1,3 +1,27 @@
+--- Aug 3, 2022
+Todos:
+v- Finish running mountain car
+v- Why does it say "Index 2000" when I run it?
+Resolved: Arguments were affected in run.py when I deleted discount factor
+as an argument from training engine
+
+- Save the TD error for each step when training with TD. Does it get close to 0?
+- Finish running test states/values for sparse mountain car
+- Code preprocess for sparse mountain car
+
+- Run on compute canada
+
+--- Aug 2, 2022
+Setting up mountain car to run.
+An interesting point that came up is how to normalize states. Suppose I scale down the position to be roughly
+between -1 and 1. The cart is within -1.2 and 0.6. If I divide by 1.2, this rescales everything around 0. It seems
+like there may be some issue with how the scaling works on each side. As in, we are compressing the sides to the
+left and right of 0 by different amounts which could change the function we are learning. But I guess it might not
+matter too much since the agent should be able to learn anyway.
+It's interesting to think that normalization might play a more complex role than one would think at first.
+The choice of center could affect what the function you are actually learning is.
+
+
 --- Aug 1, 2022
 Brainstorm first. The primary question is to compare TD and MC for representation learning and develop
 a theoretical model to explain the differences.

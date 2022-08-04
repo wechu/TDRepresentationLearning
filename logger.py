@@ -110,6 +110,7 @@ class OfflinePolicyEvaluationLogger:
             self.metrics['test_error'].append(test_error)
         elif option == 'model':
             agent.save_model(save_file + f'_model_{total_num_steps}.pyt')
+            print('saving agent')
 
     def reset(self):
         self.metrics = defaultdict(list)

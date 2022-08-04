@@ -24,12 +24,13 @@ if config_dict['algorithm'][0:2] == "TD":
 elif config_dict['algorithm'][0:2] == "MC":
     save_tag = 'mc'
 training_engine = TrainingEngine(cfg.env_class, cfg.config_dict, cfg.agent_class, cfg.config_dict, logger,
-                                 config_dict["discount"], config_dict["num_steps"], i_run, config_dict['run'],
+                                 config_dict["num_steps"], i_run, config_dict['run'],
                                  iteration_counter="steps",
-                                 save_file='test_save/' + save_tag,
+                                 save_file='test_save_mountain/' + save_tag,
                                  max_steps=config_dict["max_steps_per_ep"],
                                  offline_training=config_dict['offline_training']
                                  )
+
 # num_runs=1 because repeats are taken care of using i_run.
 # num_runs can be used to debug on single process
 

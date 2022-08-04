@@ -9,44 +9,58 @@ def load_train_data(path, env_name, repeat_index, preprocess=True):
     path: String that indicates the folder with data for all the environments
     env_name: Name of environment to run '''
     if env_name.lower() == 'cartpole':
-        data = load_cartpole_train_data(path + f"cartpoledata/Cartpole_traindata_{repeat_index}.npy", preprocess)
+        file_path = path + f"cartpoledata/cartpole_traindata_{repeat_index}.npy"
+        preprocess_fn = preprocess_cartpole
+    elif env_name.lower() == 'mountaincar':
+        file_path = path + f"mountaincardata/mountaincar_traindata_{repeat_index}.npy"
+        preprocess_fn = preprocess_mountaincar
+    elif env_name.lower() == 'sparse_mountaincar':
+        file_path = path + f"mountaincardata/mountaincar_traindata_{repeat_index}.npy"
+        preprocess_fn = preprocess_sparse_mountaincar
     else:
         raise AssertionError("No matching env data")
+
+    data = np.load(file_path, allow_pickle=True)
+    if preprocess:
+        for i in range(len(data)):
+            data[i] = preprocess_fn(data[i])
     return data
 
 def load_test_states(path, env_name, preprocess=True):
     if env_name.lower() == 'cartpole':
-        states = load_cartpole_test_states(path + f"cartpoledata/Cartpole_test_states_0.npy", preprocess)
+        file_path = path + f"cartpoledata/cartpole_test_states_0.npy"
+        preprocess_state_fn = normalize_state_cartpole
+    elif env_name.lower() == 'mountaincar':
+        file_path = path + f"mountaincardata/mountaincar_test_states_0.npy"
+        preprocess_state_fn = normalize_state_mountaincar
+    elif env_name.lower() == 'sparse_mountaincar':
+        file_path = path + f"mountaincardata/sparse_mountaincar_test_states_0.npy"
+        preprocess_state_fn = normalize_state_mountaincar
     else:
         raise AssertionError("No matching env data")
+
+    states = np.load(file_path, allow_pickle=True)
+    if preprocess:
+        for i in range(len(states)):
+            states[i] = preprocess_state_fn(states[i])
+
     return states
 
 def load_test_values(path, env_name):
     if env_name.lower() == 'cartpole':
-        values = load_cartpole_test_values(path + f"cartpoledata/Cartpole_test_values_0.npy")
+        file_path = path + f"cartpoledata/cartpole_test_values_0.npy"
+    elif env_name.lower() == 'mountaincar':
+        file_path = path + f"mountaincardata/mountaincar_test_values_0.npy"
+    elif env_name.lower() == 'sparse_mountaincar':
+        file_path = path + f"mountaincardata/sparse_mountaincar_test_values_0.npy"
     else:
         raise AssertionError("No matching env data")
+    values = np.load(file_path, allow_pickle=True)
     return values
 
+#### Classic control envs
+
 ## CartPole
-def load_cartpole_train_data(file_path, preprocess=True):
-    data = np.load(file_path, allow_pickle=True)
-    if preprocess:
-        for i in range(len(data)):
-            data[i] = preprocess_cartpole(data[i])
-    return data
-
-def load_cartpole_test_states(file_path, preprocess=True):
-    states = np.load(file_path, allow_pickle=True)
-    if preprocess:
-        for i in range(len(states)):
-            states[i] = normalize_state_cartpole(states[i])
-    return states
-
-def load_cartpole_test_values(file_path):
-    return np.load(file_path, allow_pickle=True)
-
-
 def preprocess_cartpole(transition):
     ''' Preprocesses transitions of the form (state,action, reward, next_state,done)
     Normalize states for cartpole. Rescales the state, so it's roughly between [0,1]
@@ -62,4 +76,32 @@ def normalize_state_cartpole(state):
     new_state[1] /= 2.5
     new_state[2] /= 0.2
     new_state[3] /= 0.5
+    return new_state
+
+## Mountain Car
+def preprocess_mountaincar(transition):
+    ''' Preprocesses transitions of the form (state,action, reward, next_state,done)
+    Normalize states for mountaincar. Rescales the state, so it's roughly between [0,1]
+    assumes state is a numpy array
+    position, velocity '''
+    state, action, reward, next_state, done = transition
+
+    return normalize_state_mountaincar(state), action, reward, normalize_state_mountaincar(next_state), done
+
+def preprocess_sparse_mountaincar(transition):
+    ''' Same as preprocess_mountaincar.
+    Additionally, it transforms the rewards so that they become sparse: 1 at the goal and 0 elsewhere '''
+
+    state, action, reward, next_state, done = transition
+    if done:
+        reward = 1
+    else:
+        reward = 0
+
+    return normalize_state_mountaincar(state), action, reward, normalize_state_mountaincar(next_state), done
+
+def normalize_state_mountaincar(state):
+    new_state = np.copy(state)
+    new_state[0] /= 1.2
+    new_state[1] /= 0.07
     return new_state

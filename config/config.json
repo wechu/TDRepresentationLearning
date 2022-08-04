@@ -2,14 +2,14 @@
 	"experiments":
 	[
 	    {
-	        "env": ["CartPole"],
+	        "env": ["MountainCar", "CartPole"],
 	        "agent": [
 	            {
-	                "algorithm": ["TDPolicyEval"],
-	                "step_size": [0.0001, 0.0003, 0.001, 0.003, 0.01],
-					"target_net_step_size": [0.03, 0.1, 0.3, 1.0],
+	                "algorithm": ["TDPolicyEval", "MCPolicyEval"],
+	                "step_size": [0.001, 0.001, 0.01, 0.1],
+					"target_net_step_size": [0.01, 0.03, 0.1, 0.3],
 					"num_hidden_layers" : [2],
-					"layer_size": [64, 128]
+					"layer_size": [32, 64, 128]
 	            }
 
 	        ],
@@ -21,6 +21,6 @@
 	],
 	"save_freq": [100],
 	"save_model_freq": [200],
-	"num_repeats": [10],
-	"num_runs_per_group": [10]
+	"num_repeats": [5],
+	"num_runs_per_group": [5]
 }

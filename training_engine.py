@@ -22,7 +22,6 @@ class TrainingEngine:
             agent_class,
             agent_parameters,
             metric_logger,
-            discount_rate,
             num_iterations_per_run,
             config_index=-1,
             repeat_index=-1,
@@ -33,13 +32,12 @@ class TrainingEngine:
             max_steps=None,
             save_file=None,
             offline_training=False):
-
+        # If you change the arguments, you have to check run.py
         self.env_class = env_class
         self.env_parameters = env_parameters
         self.agent_class = agent_class
         self.agent_parameters = agent_parameters
         self.metric_logger = metric_logger
-        self.discount_rate = discount_rate
         self.num_runs = num_runs  # number of repeats to do within the loop.
         self.num_iterations_per_run = num_iterations_per_run
         self.config_index = config_index
@@ -49,6 +47,9 @@ class TrainingEngine:
         self.pass_env_to_agent = pass_env_to_agent
         self.max_steps = max_steps
         self.offline_training = offline_training
+
+        self.discount_rate = self.agent_parameters['discount']
+
 
         if save_file is None:
             self.save_file = f"res_{config_index}"
@@ -190,6 +191,7 @@ class TrainingEngine:
         # self.metric_logger.save(agent_param_id=self.agent_param_id,
         #                         agent_parameters=self.agent_parameters)
         self.metric_logger.save_to_file(self.save_file)
+        print('done offline run')
         return self.metric_logger
 
     def _init_env_agent(self):
@@ -309,6 +311,17 @@ class ConfigDictConverter:
             self.config_dict['offline_data_path'] = "data_generation/"
             self.env_class = gym.envs.classic_control.CartPoleEnv
             self.logger_class = logger.OfflinePolicyEvaluationLogger
+            self.config_dict['state_size'] = 4
+            self.config_dict['action_size'] = 3
+        elif (('mountaincar' == config_dict['env'].lower() or 'sparse_mountaincar' == config_dict['env'].lower())
+              and config_dict['offline_training']):
+            self.config_dict['offline_data_path'] = "data_generation/"
+            self.env_class = gym.envs.classic_control.MountainCarEnv
+            self.logger_class = logger.OfflinePolicyEvaluationLogger
+            self.config_dict['state_size'] = 2
+            self.config_dict['action_size'] = 3
+        else:
+            raise AssertionError("config dict converter: env doesn't match")
 
         # TODO env parameters could be filtered to only contain what is needed here
 
@@ -317,9 +330,7 @@ class ConfigDictConverter:
         # TODO change the state size or hardcode
         # self.config_dict['state_size'] = self.env_class(**config_dict).state_size
         # self.config_dict['action_size'] = self.env_class(**config_dict).num_actions
-        if config_dict['env'] == 'CartPole':
-            self.config_dict['state_size'] = 4
-            self.config_dict['action_size'] = 3
+
 
 
 
