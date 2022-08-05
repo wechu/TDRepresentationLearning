@@ -6,7 +6,7 @@ from logger import OfflinePolicyEvaluationLogger
 
 ### offline_run
 i_run = 0
-sweeper = Sweeper('config/config.json')
+sweeper = Sweeper('config/config_other.json')
 
 # do some training here
 config_dict = sweeper.parse(i_run)

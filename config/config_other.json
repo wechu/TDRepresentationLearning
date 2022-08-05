@@ -6,10 +6,10 @@
 	        "agent": [
 	            {
 	                "algorithm": ["TDPolicyEval"],
-	                "step_size": [0.0001, 0.0003, 0.001, 0.003, 0.01],
-					"target_net_step_size": [0.03, 0.1, 0.3, 1.0],
+	                "step_size": [0.01],
+					"target_net_step_size": [0.1],
 					"num_hidden_layers" : [2],
-					"layer_size": [64, 128]
+					"layer_size": [128]
 	            }
 
 	        ],
@@ -20,7 +20,7 @@
 	    }
 	],
 	"save_freq": [100],
-	"save_model_freq": [200],
-	"num_repeats": [10],
-	"num_runs_per_group": [10]
+	"save_model_freq": [100],
+	"num_repeats": [1],
+	"num_runs_per_group": [1]
 }
