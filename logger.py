@@ -94,7 +94,6 @@ class AllStepsLogger(BaseMetricLogger):
             pickle.dump(save_dict, file, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-
 class OfflinePolicyEvaluationLogger:
     def __init__(self, save_freq, save_episodes, save_steps, save_model_freq=None):
         self.metrics = defaultdict(list)
@@ -104,10 +103,11 @@ class OfflinePolicyEvaluationLogger:
         self.save_steps = True  # use if we want to save after each step
         self.save_model_freq = save_model_freq  # how often to save the model checkpoints (less frequent usually)
 
-    def save_step_metrics(self, option, agent=None, total_num_steps=None, test_error=None, save_file=None, *args, **kwargs):
+    def save_step_metrics(self, option, agent=None, total_num_steps=None, test_error=None, loss=None, save_file=None, *args, **kwargs):
         # save model
         if option == 'standard':
             self.metrics['test_error'].append(test_error)
+            self.metrics['loss'].append(loss)
         elif option == 'model':
             agent.save_model(save_file + f'_model_{total_num_steps}.pyt')
             print('saving agent')

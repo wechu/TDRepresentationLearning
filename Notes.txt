@@ -1,3 +1,15 @@
+--- Aug 8, 2022
+v- Add save TD error (loss) for each checkpoint
+- Code up gridworld with wall.
+    - Run gridworld with wall
+
+
+--- Aug 5, 2022
+- Save TD error. Does it go to 0?
+- Analyze data from sweeps. Scaling with network size.
+- Code up gridworld with a wall. How does generalization across the wall occur?
+
+
 --- Aug 3, 2022
 Todos:
 v- Finish running mountain car

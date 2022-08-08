@@ -9,6 +9,7 @@ sweeper = Sweeper(results_folder + "test_config.json")
 
 all_results = []
 # Load all the parameter combinations for hyperparameter analysis
+# note: all_res is a file with repeats merged together
 for i_param in range(sweeper.total_combinations):
     with open(f"results/20220206_09953/all_res_{i_param}.pkl", 'rb') as f:
         results = pickle.load(f)

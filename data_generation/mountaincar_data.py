@@ -7,7 +7,7 @@
 # so the env is partially observable. To avoid this issue, make sure the behaviour policy is good enough so the timeout
 # is not reached.
 ######
-SPARSE_REWARD = True # if true: 1 at goal, 0 elsewhere. If false, -1 at each timestep.
+SPARSE_REWARD = True  # if true: 1 at goal, 0 elsewhere. If false, -1 at each timestep.
 SHAPED_REWARD = False  # Todo add a shaped reward which varies based on distance to the goal
 discount = 1.0
 if SPARSE_REWARD:

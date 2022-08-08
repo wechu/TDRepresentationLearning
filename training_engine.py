@@ -160,7 +160,7 @@ class TrainingEngine:
             total_num_steps = 0  # episodes don't make sense in offline RL
 
             while total_num_steps < self.num_iterations_per_run:
-                agent.offline_update()
+                loss = agent.offline_update()
                 extra_log = {}
 
                 # if total_num_steps % 100 == 0:
@@ -176,6 +176,7 @@ class TrainingEngine:
                         self.metric_logger.save_step_metrics(option='standard',
                                                              agent=agent,
                                                              test_error=test_error,
+                                                             loss=loss,
                                                              **extra_log)
 
                     if total_num_steps == 0 or (total_num_steps+1) % self.metric_logger.save_model_freq == 0:
@@ -296,7 +297,7 @@ class ConfigDictConverter:
             self.logger_class = logger.MapGridWorldEpisodesLogger
 
         # algorithm
-        print(config_dict['algorithm'])
+        # print(config_dict['algorithm'])
         if config_dict['algorithm'] == "GridWorldQlearning":
             self.agent_class = Agents.GridWorldQLearning
         if config_dict['algorithm'] == "QR-DQN":

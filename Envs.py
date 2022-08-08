@@ -105,7 +105,7 @@ class RandomMDP:
         return
 
 
-class GridWorldEnv:
+class GridWorldEnv:  # todo refactor this to be able to use walls
     def __init__(self, image_obs=True, random_goal=True, give_map=False, random_map=False, no_map=False,
                  use_memory=False, start_state=1, gridsize=None, **kwargs):
         '''

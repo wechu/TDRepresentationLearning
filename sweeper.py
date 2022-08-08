@@ -128,6 +128,11 @@ class Sweeper(object):
             return int(len(sweep_idx_list) / self.num_runs_per_group) / self.num_runs_per_group + 1
         return int(self.total_combinations * self.num_repeats / self.num_runs_per_group) + 1
 
+    def search_idx(self, search_idx):
+        """ Given the index for a hyperparameter configuration, returns all indices that match that configuration.
+        This is used to extract the indices for the repeats. """
+        return [search_idx + run * self.total_combinations for run in range(self.config_dict['num_repeats'][0])]
+
     def search(self, search_dict, only_first=True):
         """
         For any key in self.config_dict, if search_dict also has the key, use the corresponding value.
