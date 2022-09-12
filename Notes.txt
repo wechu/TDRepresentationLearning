@@ -1,8 +1,79 @@
+--- Sep 12, 2022
+Set reset_freq to -1 for no resets
+
+- Test the frequency of activations of neurons across states.
+- Why does TD generalize not as much??
+
+- How to improve saving previous results when I'm just running a bunch of small experiments in a row locally?
+    - Mini-sweeps should be allowed
+    - Save previous config files perhaps
+
+
+--- Aug 18, 2022
+v- Resets with TD (primacy bias style)
+- Pretraining with MC then doing TD (check what happens to rank)
+- Check stiffness of representation (dot product of gradient of output function for each state)
+
+
+
+--- Aug 12, 2022
+v- Modify gridworld with new behaviour policy that better covers states
+v- Visualization as an animation of learning over time
+
+--- Aug 11, 2022
+- Modify griworld so the behaviour policy visits all states enough
+- hyperparam sensitivity
+
+--- Aug 10, 2022
+v- Code value iteration for gridworld
+v- Testrun gridworld with wall
+
+v- Get result and analyze
+
+- Hyperparam sensitivity plots
+
+
+There's a bug with the data collection. 'Done' isn't appearing for some reason.
+Fixed! The policy was wrong because it was hardcoded to use the unscaled states but was fed the scaled states.
+This meant that the agent couldn't reach the goal at all and that's why 'Done' was never true.
+My solution was to give the good_policy function the option to undo the scaling on the scaled states when it computes
+the action to take.
+
+Heatmaps of the errors for TD and MC in the gridworld are quite cool!
+There's already some interesting differences between the two. TD seems to be more accurate on states that are visited
+often but is more specialized to those states. MC seems to generalize more broadly across states but this causes
+more "leakage" across the wall. That is, on the side with the start state, the values are overestimated but, on the
+side with the goal, the values are underestimated.
+
+Also, there seems to be some interesting differences early in training. At iteration 19, MC overestimates the values
+at all states but TD underestimates them. This might have to do with the broadness of generalization aspect since
+initially the agent mostly underpredicts the values (the values are between 0 and 1, predictions are around 0).
+
+I could make an animation of the predictions over time. Might discover soemthing interesting.
+To save memory, instead of saving all the models, I could just save the predictions themselves at every iteration even.
+There are so few iterations anyway.
+
+I wonder if the target net update speed has some influence on the inductive bias learned by the network?
+For example, if the target net step size is low then perhaps the network would tend to generalize less because the
+intial function is not smooth and that inductive "prior" gets passed on to learning?
+
+Hmm... some thought about how TD leads to internal consistency of the values but MC does not?
+
+
 --- Aug 8, 2022
 v- Add save TD error (loss) for each checkpoint
 - Code up gridworld with wall.
-    - Run gridworld with wall
+    v- Modify gridworld class in env to implement walls
+    - Testrun gridworld with wall
+    - Code value iteration to get optimal values
 
+- Sparse mountain car (later?)
+- Try Minatar
+
+How to code the walls?
+- Could have list of pairs of positions where the wall is.
+- Could have a list of positions + orientation of wall i.e. north, east, south or west
+Let's go with the pairs approach
 
 --- Aug 5, 2022
 - Save TD error. Does it go to 0?

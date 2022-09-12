@@ -141,7 +141,7 @@ class VanillaValueNet(nn.Module):
 class OfflinePolicyEvalTDAgent:
     def __init__(self, state_size, action_size, layer_size=64, num_hidden_layers=2,
                  step_size=0.003, discount=0.99, seed=None, output_state_values=True,
-                 target_net_step_size=0.01, batch_size=32, device='cpu', offline_mode=True, env=None,
+                 target_net_step_size=0.01, target_net_update_freq=-1, batch_size=32, reset_freq=-1, device='cpu', offline_mode=True, env=None,
                  *args, **kwargs):
         ''' This agent uses a TD update to learn a value function with an offline dataset
         state or state-action? '''
@@ -151,15 +151,23 @@ class OfflinePolicyEvalTDAgent:
             action_size = 1
 
         # for state-value prediction, we set action_size=1
-        self.net = VanillaValueNet(state_size, action_size, layer_size, num_hidden_layers, seed)
+        self.net_params = {"state_size": state_size, "action_size": action_size, "layer_size": layer_size,
+                           "num_hidden_layers": num_hidden_layers, "seed": seed}
+        self.net = VanillaValueNet(**self.net_params)
         self.data = None
         self.gamma = discount
+        self.step_size = step_size
 
         self.batch_size = batch_size
         self.target_net_step_size = target_net_step_size
+        self.target_net_update_freq = target_net_update_freq  # if positive int, uses hard updates for the target net
         self.device = device
 
+        self.update_counter = 0  # used to know when to reset
+        self.reset_freq = reset_freq  # if -1, don't do resets
+
         self.target_net = copy.deepcopy(self.net)
+
 
         self.optimizer = optim.Adam(self.net.parameters(), lr=step_size)
 
@@ -206,8 +214,26 @@ class OfflinePolicyEvalTDAgent:
         self.optimizer.step()
 
         # update target network
+        if self.target_net_update_freq > 0:
+            if self.reset_freq >= 0 and not (self.update_counter+1) % self.reset_freq < int(self.reset_freq / 4):
+                # todo hardcoded the ratio here. May want to make it a variable
+                if (self.update_counter+1) % self.target_net_update_freq == 0:
+                    self.soft_update(self.net, self.target_net, 1.0)
+        else:
+            self.soft_update(self.net, self.target_net, self.target_net_step_size)
 
-        self.soft_update(self.net, self.target_net)
+        # reset
+        if self.reset_freq >= 0:
+            if self.update_counter % self.reset_freq == 0:
+                # we reset the fast network to random init but leave the target network untouched
+                self.net = VanillaValueNet(**self.net_params)
+                self.optimizer = optim.Adam(self.net.parameters(), lr=self.step_size)
+
+                print("update counter", self.update_counter)
+
+        self.update_counter += 1
+
+
         return loss.detach().cpu().numpy()
 
     def initialize_data(self, data):
@@ -222,17 +248,17 @@ class OfflinePolicyEvalTDAgent:
         #         self.data[i] = preprocess_fn(self.data[i])
         # print(self.data)
 
-    def soft_update(self, local_model, target_model):
+    def soft_update(self, local_model, target_model, tau):
         """Soft update model parameters.
         θ_target = τ*θ_local + (1 - τ)*θ_target
         Params
         ======
             local_model (PyTorch model): weights will be copied from
             target_model (PyTorch model): weights will be copied to
-            target_net_step_size (float): interpolation parameter
+            tau (float): interpolation parameter
         """
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
-            target_param.data.copy_(self.target_net_step_size * local_param.data + (1.0 - self.target_net_step_size) * target_param.data)
+            target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
 
     def get_prediction(self, state, action=None):
         if action is None:
@@ -262,7 +288,6 @@ class OfflinePolicyEvalTDAgent:
         torch.save(self.net.state_dict(), save_file_path)
 
 
-
 class OfflinePolicyEvalMCAgent:
     def __init__(self, state_size, action_size, layer_size=64, num_hidden_layers=2,
                  step_size=0.003, discount=0.99, seed=None, output_state_values=True,
@@ -285,7 +310,6 @@ class OfflinePolicyEvalMCAgent:
 
         self.batch_size = batch_size
         self.device = device
-
 
         self.optimizer = optim.Adam(self.net.parameters(), lr=step_size)
 

@@ -1,0 +1,27 @@
+{
+	"experiments":
+	[
+	    {
+	        "env": ["MountainCar"],
+	        "agent": [
+	            {
+					"algorithm": ["MCPolicyEval"],
+					"target_net_step_size": [0.1],
+					"target_net_update_freq": [20],
+					"step_size": [0.01],
+					"num_hidden_layers" : [2],
+					"layer_size": [128],
+	            }
+
+	        ],
+			"discount": [1.0],
+			"num_steps": [5000],
+			"max_steps_per_ep": [999],
+			"offline_training": [true]
+	    }
+	],
+	"save_freq": [100],
+	"save_model_freq": [100],
+	"num_repeats": [1],
+	"num_runs_per_group": [1]
+}

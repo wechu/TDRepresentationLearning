@@ -105,76 +105,57 @@ class RandomMDP:
         return
 
 
-class GridWorldEnv:  # todo refactor this to be able to use walls
-    def __init__(self, image_obs=True, random_goal=True, give_map=False, random_map=False, no_map=False,
-                 use_memory=False, start_state=1, gridsize=None, **kwargs):
+class GridWorldEnv:
+    def __init__(self, image_obs, reward_type='sparse', goal_states=None, walls=None,
+                 gridsize=None, rescale_state=True, **kwargs):
         '''
         image_obs: Gives the state as a stack of grids.
         random_goal: If True, randomizes the goal at each episode
-        give_map: If True, the map (goal location) is given to the agent from the start
-        no_map: If True, no map is available to the agent
-        use_memory: If True, the observation includes an extra channel which tells the agent which states it has visited
+        reward_type: In 'sparse', 'dense', 'shaped' todo implement this (how to deal with discounting?)
+        walls: List of walls as indicated by pairs of adjacent cells for which there is a wall in between.
+        rescale_state: If True, divides the state position by the gridsize so it's between 0 and 1
         start_state: Int. Specifies the starting location at cell (start_state, start_state)
         '''
         self.name = 'gridworld'
         # the x-position goes from [0, gridsize[0]-1] and y-position goes from [0, gridsize[1]-1]
         self.num_actions = 5
-        self.discount = 0.95
+
+        self.discount = 0.9
+        self.rescale_state = rescale_state
 
         if gridsize is None:
             gridsize = [6,6]
-        self.gridsize = gridsize
+        self.gridsize = np.array(gridsize)
         self.image_obs = image_obs
-        self.give_map = give_map
-        self.random_map = random_map
-        self.no_map = no_map
-        self.use_memory = use_memory
-
-        if self.use_memory:
-            self.state_size = [4, gridsize[0], gridsize[1]]
-        else:
-            self.state_size = [3, gridsize[0], gridsize[1]]
-        print("state_size", self.state_size)
-        self.random_goal = random_goal
 
         self.steps = np.array([[-1, 0], [1, 0], [0, -1], [0, 1], [0, 0]])  # up, down, left, right, stay
 
-        self.start_state = np.array([start_state, start_state])
-        self.map_state = np.array([0, 0])
-        self.goal_states = [[np.array([self.gridsize[0]-1, self.gridsize[1]-1]), 1]]  # [goal, reward]
+        self.start_state = np.array([0,0])
+        self.goal_states = goal_states
+        # self.goal_states = [[np.array([self.gridsize[0]-1, self.gridsize[1]-1]), 1]]  # [goal, reward]
 
-        if self.no_map:
-            self.map_state = np.array([-1, -1])  # unreachable location
+        self.walls = np.array(walls)  # list of pairs of locations. Walls are between each pair of locations. E.g. ((0,0), (1,0))
+        # self.walls is indexed by (wall_index, cell_index (0 or 1), cell_coordinate (0 or 1) )
 
         self.pos = self.start_state.copy()
         self.timestep = 0
-        self.picked_up_map = self.give_map
-
-        if self.use_memory:
-            self.visited_locations = np.zeros(self.gridsize, dtype='int8')
 
         self.reset()
-
 
     def reset(self):
         self.pos = self.start_state.copy()
         self.timestep = 0
 
-        self.picked_up_map = self.give_map
-
-        if self.random_goal:
-            goal_state = np.array([0,0])
-            while np.all(goal_state < np.array([self.gridsize[0]/2,self.gridsize[1]/2])):  # at least one of the two dimensions should be 3 or above
-                goal_state = np.random.randint([0, 0], self.gridsize)
-
-            self.goal_states = [[goal_state, 1]]
-
-        if self.use_memory:
-            self.visited_locations = np.zeros(self.gridsize, dtype='int8')
+        obs = self.pos.copy()
 
         if self.image_obs:
-            return self.state_to_image()
-        return self.pos.copy()
+            obs = self.state_to_image()
+        else:
+            obs = np.array(self.pos.copy())
+            if self.rescale_state:
+                obs = obs / self.gridsize
+
+        return obs
 
     def copy(self):
         copy_env = GridWorldEnv(self.gridsize)
@@ -204,18 +185,24 @@ class GridWorldEnv:  # todo refactor this to be able to use walls
 
         self.pos = np.array(next_state)
 
-        if self.random_goal:
-            if np.all(self.map_state == self.pos):
-                self.picked_up_map = True
-
-        obs = np.array(next_state)
         if self.image_obs:
             obs = self.state_to_image()
-
-        if self.use_memory:
-            self.visited_locations[self.pos[0], self.pos[1]] = 1
+        else:
+            obs = np.array(next_state)
+            if self.rescale_state:
+                obs = obs / self.gridsize
 
         return obs, reward, done, None
+
+    def _check_wall(self, state, next_state):
+        ''' Returns true if there is a collision with a wall.
+        Assumes state, next_state and wall are numpy arrays '''
+        for wall in self.walls:
+            if np.all(state == wall[0]) and np.all(next_state == wall[1]):
+                return True
+            elif np.all(state == wall[1]) and np.all(next_state == wall[0]):
+                return True
+        return False
 
     def transition_dist(self, state, action):
         # returns a list of reward, next_states, next_states_prob and done
@@ -227,36 +214,190 @@ class GridWorldEnv:  # todo refactor this to be able to use walls
         next_states_and_prob = defaultdict(lambda: 0.0)  # keys are next states, values are probabilities
 
         # # done and reward only depend on the current state
-        # done, reward = self._check_goal(state)
+        done, reward = self._check_goal(state)
 
         # for movement
         # first, consider the case of not slipping
         temp_state = state + self.steps[action]
-        if self._check_valid_pos(temp_state):
+
+        if self._check_valid_pos(temp_state) and not self._check_wall(state, temp_state):
             next_state = temp_state
         else:
             next_state = state
         next_states_and_prob[tuple(next_state)] = 1.0
 
+        # check this toggle
         # done and reward only depend on the next state
         # this is only correct if next_state is deterministic
-        done, reward = self._check_goal(next_state)
+        # done, reward = self._check_goal(next_state)
 
         return reward, list(next_states_and_prob.keys()), list(next_states_and_prob.values()), done
 
     def state_to_image(self):
-        # Retunrs a 3x6x6 stack of grids
-        img = np.zeros(shape=(3, self.gridsize[0], self.gridsize[1]), dtype='int8')
-        img[0, self.pos[0], self.pos[1]] = 1  # agent position
-        img[1, self.map_state[0], self.map_state[1]] = 1  # map position
-        if self.picked_up_map:
-            goal_pos = self.goal_states[0][0]
-            img[2, goal_pos[0], goal_pos[1]] = 1  # goal position
+        # Returns a 6x6 grid
+        img = np.zeros(shape=(self.gridsize[0], self.gridsize[1]), dtype='int8')
+        img[self.pos[0], self.pos[1]] = 1  # agent position
 
-        if self.use_memory:
-            img = np.append(img, self.visited_locations.reshape((1, self.gridsize[0], self.gridsize[1])), axis=0)
         return img
 
+    def preprocess_state(self, state):
+        # rescales the state between 0 and 1
+        return np.array(state) / self.gridsize
+
+    def value_iteration(self, init_values=None):
+        # returns the optimal values and optimal policy
+        tolerance = 1e-6
+        max_error = 99999
+        iter = 0
+
+        if init_values:
+            q_values = init_values
+        else:
+            q_values = 1/(1-self.discount) /2 * np.ones((self.num_states, self.num_actions))  # initialize a guess to the values
+            # q_values = np.zeros((self.num_states, self.num_actions))
+        while max_error > tolerance:
+            iter += 1
+            copy_q_values = q_values.copy()
+            for s,a in product(range(self.num_states), range(self.num_actions)):
+                max_q_values = np.max(q_values, axis=1)
+
+                q_values[s,a] = self.reward(s,a) + self.discount * np.sum(self.transition(s,a) * max_q_values)
+
+            max_error = np.max(np.abs(copy_q_values - q_values))
+        # print("iter", iter)
+        return q_values, np.argmax(q_values, axis=1)
+
+    def policy_evaluation(self, policy):
+        ''' Returns a list of all state-actions and their associated values
+        Q-values and V-values
+        policy: this is a numpy array with shape (gridsize[0], gridsize[1], num_actions) containing the policy
+            probabilities in each entry '''
+        tolerance = 1e-6
+        max_error = 99999
+        iter = 0
+
+        q_values = 0.5 * np.ones((self.gridsize[0], self.gridsize[1], self.num_actions))
+
+        while max_error > tolerance:
+            iter += 1
+            copy_q_values = q_values.copy()
+            q_value_targets = np.sum(q_values * policy, axis=2)
+
+            for i,j,a in product(range(self.gridsize[0]), range(self.gridsize[1]), range(self.num_actions)):
+                reward, next_states, next_states_prob, done = self.transition_dist(np.array([i,j]), a)
+                updated_q = reward
+                # if i == 5 and j == 0:
+                #     print("here", reward, done)
+                if not done:
+                    for idx in range(len(next_states)):
+                        updated_q += self.discount * next_states_prob[idx] * q_value_targets[next_states[idx]]  # uses tuple indexing
+                q_values[i,j,a] = updated_q
+                # print(updated_q)
+            #
+            max_error = np.max(np.abs(copy_q_values - q_values))
+            print(iter, max_error)
+
+        state_values = np.sum(q_values * policy, axis=2)
+
+        return q_values, state_values
+
+
+class WallGridWorldEnv(GridWorldEnv):
+    def __init__(self, rescale_state=True   ):
+        ''' This env is a 6x6 gridworld with a horizontal wall between indices y=2 and y=3 extending from the left side
+        leaving one space open on the right side. s is the start cell and x is the goal cell.
+        o denotes a traversable cell.
+         s o o o o o
+         o o o o o o
+         o o o o o o
+         - - - - -
+         o o o o o o
+         o o o o o o
+         x o o o o o
+        '''
+        super().__init__(image_obs=False, goal_states=[[np.array([5, 0]), 1]],
+                         walls=[((2,i),(3,i)) for i in range(5)], gridsize=(6,6), rescale_state=rescale_state)
+
+    def eps_good_policy(self, state, eps=0.1, unscale=True):
+        if np.random.rand() < eps:
+            return np.random.randint(5)
+        else:
+            return self._good_policy(state, unscale)
+
+    def _eps_good_policy_dist(self, state, eps=0.1, unscale=True):
+        num_actions = 5
+        dist = eps * np.ones(num_actions) / num_actions
+        dist[self._good_policy(state, unscale=unscale)] = 1 - eps * (num_actions - 1) / num_actions
+        return dist
+
+    def generate_entire_policy(self, eps=0.1):
+        ''' Generates a dictionary of the policy at every state. Used for policy evaluation '''
+        policy = np.zeros((self.gridsize[0], self.gridsize[1], self.num_actions))
+
+        for i in range(self.gridsize[0]):
+            for j in range(self.gridsize[1]):
+                policy[i,j] = np.array(self._eps_good_policy_dist(state=(i, j), eps=eps, unscale=False))
+        return policy
+
+    def _good_policy(self, state, unscale=True):
+        # change so it covers the state space better
+        if unscale:
+            state = np.array(state)
+            state *= self.gridsize
+            state = np.rint(state).astype('int32')
+
+        if state[0] <= 2:
+            if state[1] == 5:
+                return 1  # go down
+            else:
+                return 3  # go right
+        elif state[0] >= 3:
+            if state[1] == 0:
+                return 1  # go down
+            else:
+                return 2  # go left
+
+    def cover_policy(self, state, unscale=True):
+        # choose actions
+        if unscale:
+            state = np.array(state)
+            state *= self.gridsize
+            state = np.rint(state).astype('int32')
+
+        if state[0] <= 2:
+            if state[1] == 5:
+                action = 1  # go down
+            elif state[1] == 0 and state[0] in (0, 1):
+                action = 1 if np.random.rand() < 0.5 else 3
+            else:
+                action = 3  # go right
+        elif state[0] >= 3:
+            if state[1] == 0:
+                action = 1  # go down
+            elif state[1] == 5 and state[0] in (3,4):
+                action = 1 if np.random.rand() < 0.5 else 2
+            else:
+                action = 2  # go left
+
+        eps = 0.1
+        if np.random.rand() < eps:
+            action = np.random.randint(self.num_actions)
+        return action
+
+    def generate_entire_cover_policy(self):
+        eps = 0.1
+        policy = self.generate_entire_policy(eps)
+        for i in [0,1]:
+            probs = eps / self.num_actions * np.ones(self.num_actions)
+            probs[1] = probs[3] = (1-eps)/2 + eps/5
+            policy[i,0] = np.array(probs)
+
+        for i in [3,4]:
+            probs = eps / self.num_actions * np.ones(self.num_actions)
+            probs[1] = probs[2] = (1-eps)/2 + eps/5
+            policy[i,5] = np.array(probs)
+
+        return policy
 
 
 
@@ -300,14 +441,24 @@ if __name__ == "__main__":
 
     import deepRL
     import torch
-    env = RandomGoalMapGridWorldEnv()
-    BUFFER_SIZE = 100000
-    BATCH_SIZE = 32
-    GAMMA = 0.99
-    TAU = 1e-2
-    LR = 1e-3
-    UPDATE_EVERY = 1
-    n_step = 1
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    env = WallGridWorldEnv()
+    pol = env.generate_entire_cover_policy()
+
+    q_values, state_values = env.policy_evaluation(pol)
+    np.set_printoptions(precision=3)
+    print(state_values)
 
 
+
+    # print(pol[2,0])
+    #
+    # s, r, done, _ = env.step(1)
+    # print(s)
+    # print(env.eps_good_policy_dist(s))
+    # s, r, done, _ = env.step(1)
+    # print(s)
+    # print(env.eps_good_policy_dist(s))
+    # s, r, done, _ = env.step(1)
+    # print(s)
+    # print(env.eps_good_policy_dist(s))
+    # print(env.transition_dist(np.array([3,3]), 0))

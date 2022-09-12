@@ -308,7 +308,7 @@ class ConfigDictConverter:
             self.agent_class = Agents.OfflinePolicyEvalMCAgent
 
         # offline RL. Add data paths
-        if config_dict['env'] == 'CartPole' and config_dict['offline_training']:
+        if config_dict['env'].lower() == 'cartpole' and config_dict['offline_training']:
             self.config_dict['offline_data_path'] = "data_generation/"
             self.env_class = gym.envs.classic_control.CartPoleEnv
             self.logger_class = logger.OfflinePolicyEvaluationLogger
@@ -321,6 +321,12 @@ class ConfigDictConverter:
             self.logger_class = logger.OfflinePolicyEvaluationLogger
             self.config_dict['state_size'] = 2
             self.config_dict['action_size'] = 3
+        elif config_dict['env'].lower() == 'wall_gridworld':
+            self.config_dict['offline_data_path'] = "data_generation/"
+            self.env_class = Envs.WallGridWorldEnv
+            self.logger_class = logger.OfflinePolicyEvaluationLogger
+            self.config_dict['state_size'] = 2
+            self.config_dict['action_size'] = 5
         else:
             raise AssertionError("config dict converter: env doesn't match")
 

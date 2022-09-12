@@ -17,11 +17,14 @@ def load_train_data(path, env_name, repeat_index, preprocess=True):
     elif env_name.lower() == 'sparse_mountaincar':
         file_path = path + f"mountaincardata/mountaincar_traindata_{repeat_index}.npy"
         preprocess_fn = preprocess_sparse_mountaincar
+    elif env_name.lower() == 'wall_gridworld':
+        file_path = path + f"gridworlddata/wallgridworld_traindata_{repeat_index}.npy"
+        preprocess_fn = None
     else:
         raise AssertionError("No matching env data")
 
     data = np.load(file_path, allow_pickle=True)
-    if preprocess:
+    if preprocess and preprocess_fn is not None:
         for i in range(len(data)):
             data[i] = preprocess_fn(data[i])
     return data
@@ -36,11 +39,14 @@ def load_test_states(path, env_name, preprocess=True):
     elif env_name.lower() == 'sparse_mountaincar':
         file_path = path + f"mountaincardata/sparse_mountaincar_test_states_0.npy"
         preprocess_state_fn = normalize_state_mountaincar
+    elif env_name.lower() == 'wall_gridworld':
+        file_path = path + f"gridworlddata/wallgridworld_test_states.npy"
+        preprocess_state_fn = None
     else:
         raise AssertionError("No matching env data")
 
     states = np.load(file_path, allow_pickle=True)
-    if preprocess:
+    if preprocess and preprocess_state_fn is not None:
         for i in range(len(states)):
             states[i] = preprocess_state_fn(states[i])
 
@@ -53,6 +59,8 @@ def load_test_values(path, env_name):
         file_path = path + f"mountaincardata/mountaincar_test_values_0.npy"
     elif env_name.lower() == 'sparse_mountaincar':
         file_path = path + f"mountaincardata/sparse_mountaincar_test_values_0.npy"
+    elif env_name.lower() == 'wall_gridworld':
+        file_path = path + f"gridworlddata/wallgridworld_test_values.npy"
     else:
         raise AssertionError("No matching env data")
     values = np.load(file_path, allow_pickle=True)
