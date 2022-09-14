@@ -26,7 +26,7 @@ elif config_dict['algorithm'][0:2] == "MC":
 training_engine = TrainingEngine(cfg.env_class, cfg.config_dict, cfg.agent_class, cfg.config_dict, logger,
                                  config_dict["num_steps"], i_run, config_dict['run'],
                                  iteration_counter="steps",
-                                 save_file=f'test_save_{config_dict["env"].to_lower()}/' + save_tag,
+                                 save_file=f'test_save_{config_dict["env"].lower()}/' + save_tag,
                                  max_steps=config_dict["max_steps_per_ep"],
                                  offline_training=config_dict['offline_training']
                                  )

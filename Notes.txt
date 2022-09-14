@@ -5,9 +5,11 @@ Set reset_freq to -1 for no resets
 - Why does TD generalize not as much??
 
 - How to improve saving previous results when I'm just running a bunch of small experiments in a row locally?
-    - Mini-sweeps should be allowed
+    - Mini-sweeps should be allowed (over envs and
+    - Make discounting part of the env (not agent)
     - Save previous config files perhaps
-
+    - Write results up in notion
+    - Possibly change config files from json to another format. yaml? Consider omega config?
 
 --- Aug 18, 2022
 v- Resets with TD (primacy bias style)
