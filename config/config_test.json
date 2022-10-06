@@ -5,21 +5,22 @@
 	        "env": ["wall_gridworld"],
 	        "agent": [
 	            {
-					"algorithm": ["MCPolicyEval"],
-					"target_net_step_size": [0.1],
-					"step_size": [0.01],
+					"algorithm": ["TDPolicyEval", "MCPolicyEval"],
+					"target_net_step_size": [0.5],
+					"step_size": [0.001],
 					"num_hidden_layers" : [2],
-					"layer_size": [128]
+					"layer_size": [128],
+					"batch_size": [32]
 	            }
 	        ],
-			"discount": [0.9],
-			"num_steps": [5000],
+			"discount": [1.0],
+			"num_steps": [100],
 			"max_steps_per_ep": [999],
 			"offline_training": [true]
 	    }
 	],
-	"save_freq": [100],
-	"save_model_freq": [100],
+	"save_freq": [1],
+	"save_model_freq": [1],
 	"num_repeats": [1],
 	"num_runs_per_group": [1]
 }

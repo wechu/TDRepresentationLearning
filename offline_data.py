@@ -113,3 +113,15 @@ def normalize_state_mountaincar(state):
     new_state[0] /= 1.2
     new_state[1] /= 0.07
     return new_state
+
+
+if __name__ == '__main__':
+    ## do linear regression and save the weights
+    env = "mountaincar"
+    test_states = load_test_states("data_generation/", env)
+    test_values = load_test_values("data_generation/", env)
+    new_test_states = np.append(test_states, np.ones((test_states.shape[0], 1), dtype=test_states.dtype), axis=1)
+    w, _, _, _ = np.linalg.lstsq(new_test_states, test_values)
+    print(new_test_states[0:10])
+    print(w)
+    np.save(f"linreg_{env}.npy", w)

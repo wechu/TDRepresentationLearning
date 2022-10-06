@@ -327,6 +327,10 @@ class ConfigDictConverter:
             self.logger_class = logger.OfflinePolicyEvaluationLogger
             self.config_dict['state_size'] = 2
             self.config_dict['action_size'] = 5
+        elif config_dict['env'].lower() == 'toy': # todo finish
+            self.config_dict['offline_data_path'] = "data_generation/"
+            self.config_dict['state_size'] = 2
+            self.config_dict['action_size'] = 1
         else:
             raise AssertionError("config dict converter: env doesn't match")
 

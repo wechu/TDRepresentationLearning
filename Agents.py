@@ -141,12 +141,13 @@ class VanillaValueNet(nn.Module):
 class OfflinePolicyEvalTDAgent:
     def __init__(self, state_size, action_size, layer_size=64, num_hidden_layers=2,
                  step_size=0.003, discount=0.99, seed=None, output_state_values=True,
-                 target_net_step_size=0.01, target_net_update_freq=-1, batch_size=32, reset_freq=-1, device='cpu', offline_mode=True, env=None,
+                 target_net_step_size=0.01, target_net_update_freq=-1, batch_size=32, reset_freq=-1,
+                 optimizer='adam', device='cpu',
+                 offline_mode=True, env=None,
                  *args, **kwargs):
         ''' This agent uses a TD update to learn a value function with an offline dataset
         state or state-action? '''
         self.output_state_values = output_state_values
-
         if output_state_values:
             action_size = 1
 
@@ -168,8 +169,8 @@ class OfflinePolicyEvalTDAgent:
 
         self.target_net = copy.deepcopy(self.net)
 
-
-        self.optimizer = optim.Adam(self.net.parameters(), lr=step_size)
+        if optimizer == "adam":
+            self.optimizer = optim.Adam(self.net.parameters(), lr=step_size)
 
     def offline_update(self):
         ''' One update on the offline data. E.g. one minibatch SGD update '''
@@ -233,7 +234,6 @@ class OfflinePolicyEvalTDAgent:
 
         self.update_counter += 1
 
-
         return loss.detach().cpu().numpy()
 
     def initialize_data(self, data):
@@ -291,7 +291,8 @@ class OfflinePolicyEvalTDAgent:
 class OfflinePolicyEvalMCAgent:
     def __init__(self, state_size, action_size, layer_size=64, num_hidden_layers=2,
                  step_size=0.003, discount=0.99, seed=None, output_state_values=True,
-                 batch_size=32, device='cpu', offline_mode=True, env=None,
+                 batch_size=32, device='cpu',
+                 optimizer='adam', offline_mode=True, env=None,
                  *args, **kwargs):
         ''' This agent uses a Monte Carlo update to learn a value function with an offline dataset
         state or state-action?
@@ -307,11 +308,13 @@ class OfflinePolicyEvalMCAgent:
         self.mc_returns = None  # used to store the Monte Carlo returns associated to each state todo make work with (s,a)
         self.last_done_index = None  # keeps track of the end of the last completed episode
         self.gamma = discount
+        self.env = env.to_lower()
 
         self.batch_size = batch_size
         self.device = device
 
-        self.optimizer = optim.Adam(self.net.parameters(), lr=step_size)
+        if optimizer == "adam":
+            self.optimizer = optim.Adam(self.net.parameters(), lr=step_size)
 
     def offline_update(self):
         ''' One update on the offline data. E.g. one minibatch SGD update
@@ -380,6 +383,14 @@ class OfflinePolicyEvalMCAgent:
 
         self.mc_returns = list(reversed(self.mc_returns))
 
+        print(self.data[3])
+        ### For test with linear regression to shift all the returns
+        linreg = True
+        if linreg:
+            w = np.load(f'linreg_{self.env}')
+            for i in range(last_done_index):
+                # shift the returns to obtain residuals from the linear regression estimate
+                self.mc_returns[i] -= np.dot(w, self.data[i][0].append(1))
 
         # self.data = np.load(offline_data_path, allow_pickle=True)
         # if preprocess_fn is not None:
