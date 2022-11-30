@@ -267,6 +267,7 @@ def test_policy_evaluation_error(agent, test_states, test_values):
     errors = []
     for test_state, test_value in zip(test_states, test_values):
         pred = agent.get_prediction(test_state)
+        # print(pred, test_value)
         errors.append((pred - test_value)**2)
     # print(errors)
     return np.sqrt(np.mean(errors))
@@ -327,7 +328,7 @@ class ConfigDictConverter:
             self.logger_class = logger.OfflinePolicyEvaluationLogger
             self.config_dict['state_size'] = 2
             self.config_dict['action_size'] = 5
-        elif config_dict['env'].lower() == 'toy': # todo finish
+        elif config_dict['env'].lower() == 'toy':  # todo finish
             self.config_dict['offline_data_path'] = "data_generation/"
             self.config_dict['state_size'] = 2
             self.config_dict['action_size'] = 1

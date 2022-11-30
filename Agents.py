@@ -308,7 +308,7 @@ class OfflinePolicyEvalMCAgent:
         self.mc_returns = None  # used to store the Monte Carlo returns associated to each state todo make work with (s,a)
         self.last_done_index = None  # keeps track of the end of the last completed episode
         self.gamma = discount
-        self.env = env.to_lower()
+        self.env = env.lower()
 
         self.batch_size = batch_size
         self.device = device
@@ -387,10 +387,10 @@ class OfflinePolicyEvalMCAgent:
         ### For test with linear regression to shift all the returns
         linreg = True
         if linreg:
-            w = np.load(f'linreg_{self.env}')
+            w = np.load(f'linreg_{self.env}.npy')
             for i in range(last_done_index):
                 # shift the returns to obtain residuals from the linear regression estimate
-                self.mc_returns[i] -= np.dot(w, self.data[i][0].append(1))
+                self.mc_returns[i] -= np.dot(w, np.append(self.data[i][0],1))
 
         # self.data = np.load(offline_data_path, allow_pickle=True)
         # if preprocess_fn is not None:
@@ -401,12 +401,23 @@ class OfflinePolicyEvalMCAgent:
     def get_prediction(self, state, action=None):
         if action is None:
             action = 0
+
+        # linreg = True
+        # if linreg:
+        #     w = np.load(f'linreg_{self.env}.npy')
+        #     offset = np.dot(w, np.append(state, 1))
+
         state = torch.tensor(state).float().to(self.device)
         action = torch.tensor(action).long().to(self.device)
 
         value = self.net(torch.atleast_2d(state))[0][action.unsqueeze(-1)]
 
-        return value.squeeze().detach().cpu().numpy()
+        pred = value.squeeze().detach().cpu().numpy()
+        # print(pred)
+        # if linreg:
+        #     pred += offset
+
+        return pred
 
     def get_features(self, state, add_bias=False):
         state = torch.tensor(state).float().to(self.device)

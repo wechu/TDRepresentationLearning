@@ -52,7 +52,7 @@ def load_test_states(path, env_name, preprocess=True):
 
     return states
 
-def load_test_values(path, env_name):
+def load_test_values(path, env_name, linreg=True):
     if env_name.lower() == 'cartpole':
         file_path = path + f"cartpoledata/cartpole_test_values_0.npy"
     elif env_name.lower() == 'mountaincar':
@@ -64,6 +64,12 @@ def load_test_values(path, env_name):
     else:
         raise AssertionError("No matching env data")
     values = np.load(file_path, allow_pickle=True)
+    if linreg:
+        states = load_test_states(path, env_name)
+        w = np.load(f"linreg_{env_name}.npy")
+        for i in range(len(values)):
+            values[i] -= np.dot(w, np.append(states[i], 1))
+    # print(values)
     return values
 
 #### Classic control envs
@@ -117,11 +123,14 @@ def normalize_state_mountaincar(state):
 
 if __name__ == '__main__':
     ## do linear regression and save the weights
-    env = "mountaincar"
-    test_states = load_test_states("data_generation/", env)
-    test_values = load_test_values("data_generation/", env)
-    new_test_states = np.append(test_states, np.ones((test_states.shape[0], 1), dtype=test_states.dtype), axis=1)
-    w, _, _, _ = np.linalg.lstsq(new_test_states, test_values)
-    print(new_test_states[0:10])
-    print(w)
-    np.save(f"linreg_{env}.npy", w)
+    # env = "mountaincar"
+    # test_states = load_test_states("data_generation/", env)
+    # test_values = load_test_values("data_generation/", env)
+    # new_test_states = np.append(test_states, np.ones((test_states.shape[0], 1), dtype=test_states.dtype), axis=1)
+    # w, _, _, _ = np.linalg.lstsq(new_test_states, test_values)
+    # print(new_test_states[0:10])
+    # print(w)
+    # np.save(f"linreg_{env}.npy", w)
+
+    ## Check values
+    test_values = load_test_values("data_generation/", "mountaincar")

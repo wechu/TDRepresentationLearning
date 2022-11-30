@@ -5,7 +5,8 @@ from training_engine import TrainingEngine, ConfigDictConverter
 from logger import OfflinePolicyEvaluationLogger
 
 ### offline_run
-i_runs = [0,1,2,3]
+# i_runs = [0,1,2,3]
+i_runs = [0]
 
 for i_run in i_runs:
     sweeper = Sweeper('config/config_test.json')
